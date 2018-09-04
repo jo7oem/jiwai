@@ -118,7 +118,7 @@ def mesuer():
 
     for i in checkPoint:
         if count==0:
-            CtlIout(i,step)
+            CtlIoutMA(i,step)
             cout+=1
             continue
         isetmA = int(FetchIset() * 1000)
@@ -127,13 +127,15 @@ def mesuer():
         else:
             recodePoint=range(isetmA,i,abs(mesh)*-1)
         for j in recodePoint:
-            CtlIout(j,step)
+            CtlIoutMA(j,step)
             time.sleep(0.5)
             addSaveStatus(savefile)
-        CtlIout(i,step)
+        CtlIoutMA(i,step)
         time.sleep(0.5)
         addSaveStatus(savefile)
         continue
+
+    pass
 
 
 
