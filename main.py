@@ -25,6 +25,7 @@ def ioutfunc():  # 出力電流の関数
 
     iout = power.query("IOUT?")
     current = iout.translate(str.maketrans('', '', 'IOUT A\r\n'))  # 指定文字を文字列から削除
+    return iout.translate(str.maketrans('', '', 'IOUT A\r\n'))  # 指定文字を文字列から削除
 
 
 def fieldfunc():  # 測定磁界の関数
@@ -73,7 +74,7 @@ def init():
     # バイポーラ電源の読み込み
     ioutfunc()
     global current
-    meascurrent = "%.2f" % (float(current))
+    meascurrent = "%.2f" % (float(current))  # ループ用　３桁遅い
 
     if float(current) < 0.009 and float(current) > -0.009:  # 文字列をfloatに変換して比較
         print("initialized\n")
@@ -971,6 +972,3 @@ while 1:
 
     else:
         print('this command is not define')  # 指定されていないコマンドを打った場合
-
-
-
