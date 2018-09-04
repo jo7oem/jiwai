@@ -4,6 +4,7 @@ import visa
 import time
 import os
 import sys
+import csv
 import datetime
 
 UNSAFE = False
@@ -13,7 +14,9 @@ if DEVENV == False:
     gauss = rm.open_resource("ASRL3::INSTR")
     power = rm.open_resource("GPIB0::4::INSTR")
 
-
+def getTimef():  # PCから日付と時刻を読み込む
+    now = datetime.datetime.now()
+    print("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second))
 def FetchIout():  # 出力電流の関数
     iout = power.query("IOUT?")
     return float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))  # 指定文字を文字列から削除
@@ -38,8 +41,9 @@ def SetIset(i):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
-def SetIsetMA(i):
-    SetIset(float(i) / 1000)
+def SetIsetMA(mA):
+    A="%.3f" % (mA/1000)
+    SetIset(A)
 
 
 def FetchField():  # 測定磁界の関数
@@ -51,6 +55,17 @@ def ReadField():  # 測定磁界の関数
     readfield = gauss.query("FIELD?") + gauss.query("FIELDM?") + gauss.query("UNIT?")
     return readfield.translate(str.maketrans('', '', ' \r\n'))
 
+def loadStatus():
+    iout=FetchIout()
+    iset=FetchIset()
+    vout=FetchVout()
+    H=FetchField()
+    return iset,iout,H,vout
+
+def addSaveStatus(filename):
+    with open(filename,'a')as f:
+        writer=csv.writer(f,lineterminator='\n')
+        writer.writerow(loadStatus())
 
 def usWriteGauss(s):
     gauss.write(s)
@@ -58,6 +73,69 @@ def usWriteGauss(s):
 
 def usWritePower(s):
     power.write(s)
+
+def CanOutput():
+    if power.query("OUT?")== 'OUT 001\r\n':
+        return True
+    return False
+
+def CtlIoutMA(target,step=100):
+    if target==FetchIset():
+        return
+    mAcurrent=int(FetchIout()*1000)
+    if mAcurrent < target:
+        ctlPoint=list(range(mAcurrent,int(target),abs(int(step))))
+    else:
+        ctlPoint=list(range(mAcurrent,int(target),abs(int(step))*-1))
+    for mA in ctlPoint:
+        SetIsetMA(mA)
+        time.sleep(0.2)
+    SetIsetMA(target)
+
+def CtlIout(target,step=0.1):
+    CtlIoutMA(int("%.3f" %(target*1000)),int("%.3f" %(step*1000)))
+
+def GenCSVheader(filename,timeStr):
+    with open(filename,'a')as f:
+        writer=csv.writer(f,lineterminator='\n')
+        writer.writerow(["start time",timeStr])
+        writer.writerow(["IOUTs","IOUTr","H field","VOUT"])
+
+def mesuer():
+    """
+    0A=>+5A=>0A=>-5A=>0A
+    mA
+    """
+    checkPoint=[0,5000,0,-5000,0]
+    mesh=500
+    step=100
+    count=0
+
+    now = datetime.datetime.now()
+    startTime="%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    savefile=startTime+".csv"
+    GenCSVheader(savefile,startTime)
+
+    for i in checkPoint:
+        if count==0:
+            CtlIout(i,step)
+            cout+=1
+            continue
+        isetmA = int(FetchIset() * 1000)
+        if i>=isetmA:
+            recodePoint=range(isetmA,i,abs(mesh))
+        else:
+            recodePoint=range(isetmA,i,abs(mesh)*-1)
+        for j in recodePoint:
+            CtlIout(j,step)
+            time.sleep(0.5)
+            addSaveStatus(savefile)
+        CtlIout(i,step)
+        time.sleep(0.5)
+        addSaveStatus(savefile)
+        continue
+
+
 
 
 def usQueryGauss(s):
@@ -160,6 +238,12 @@ def cmdlist():
     B
     """)
 
+def cmdCtlIout():
+    print("mA unit in target")
+    target=int(input(">>>>>"))
+    print("mA unit step")
+    step=int(input(">>>>>"))
+    CtlIoutMA(target,step)
 
 def main():
     global UNSAFE
@@ -167,6 +251,8 @@ def main():
         cmd = input(">>>")
         if cmd in {"h", "help", "c", "cmd", "command"}:
             cmdlist()
+        elif cmd=="ctlIout":
+            cmdCtlIout()
         elif cmd == "unsafe":
             UNSAFE = True
             print("enable unsafemode")
