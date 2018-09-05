@@ -125,10 +125,10 @@ def GenCSVheader(filename, timeStr):
 
 
 def measure():
-    if CanOutput() == False:
+    if not CanOutput():
         power.write("OUT 1")
         time.sleep(0.8)
-        if CanOutput() == False:
+        if not CanOutput():
             print("出力をONにできません")
             return
         print("出力をONに変更しました")
@@ -180,9 +180,6 @@ def measure():
         print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
         addSaveStatus(savefile, (iset, iout, h, vout))
         continue
-
-
-    pass
 
 
 
@@ -273,7 +270,7 @@ def finary():
             sys.exit("バイポーラ電源が命令を受け付けません")
     power.write("OUT 0")
     time.sleep(1.0)
-    if CanOutput() == False:
+    if not CanOutput():
         print('バイポーラ電源の出力がOFFになりました')
     else:
         print('バイポーラ電源が命令を受け付けません!')
