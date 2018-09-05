@@ -115,6 +115,14 @@ def CtlIoutMA(target, step=100):
         SetIsetMA(mA)
         time.sleep(0.2)
     SetIsetMA(target)
+    time.sleep(0.1)
+    if abs(FetchIout() - target) < 0.01:
+        return
+    SetIsetMA(target)
+    time.sleep(0.3)
+    if abs(FetchIout() - target) < 0.01:
+        return
+    print("[Warn]:電流が指定値に合わせられませんでした")
 
 
 def GenCSVheader(filename, timeStr):
