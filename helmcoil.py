@@ -1,4 +1,3 @@
-#!/bin/python3
 # -*- coding: utf-8 -*-
 import visa
 import time
@@ -62,10 +61,11 @@ def loadStatus():
     H=FetchField()
     return iset,iout,H,vout
 
-def addSaveStatus(filename):
+
+def addSaveStatus(filename, status):
     with open(filename,'a')as f:
         writer=csv.writer(f,lineterminator='\n')
-        writer.writerow(loadStatus())
+        writer.writerow(status)
 
 def usWriteGauss(s):
     gauss.write(s)
@@ -92,24 +92,41 @@ def CtlIoutMA(target,step=100):
         time.sleep(0.2)
     SetIsetMA(target)
 
-def CtlIout(target,step=0.1):
-    CtlIoutMA(int("%.3f" %(target*1000)),int("%.3f" %(step*1000)))
-
 def GenCSVheader(filename,timeStr):
     with open(filename,'a')as f:
         writer=csv.writer(f,lineterminator='\n')
         writer.writerow(["start time",timeStr])
         writer.writerow(["IOUTs","IOUTr","H field","VOUT"])
 
-def mesuer():
+
+def measure():
+    if CanOutput() == False:
+        power.write("OUT 1")
+        time.sleep(0.8)
+        if CanOutput() == False:
+            print("出力をONにできません")
+            return
+        print("出力をONに変更しました")
+    print("出力が許可されています。")
+
+    gauss.write("RANGE 2")
+    time.sleep(0.1)
+    gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
+    if gaussrange == '2\r\n':
+        print('ガウスメーターのレンジが +-300G に変更されました')
+
+    else:
+        print('ガウスメーターのレンジを確認してください')
+        return
+
     """
     0A=>+5A=>0A=>-5A=>0A
     mA
     """
-    checkPoint=[0,5000,0,-5000,0]
-    mesh=500
-    step=100
-    count=0
+    checkPoint = [0, 5000, 0, -5000, 0]
+    mesh = 500
+    step = 100
+    count = 0
 
     now = datetime.datetime.now()
     startTime="%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
@@ -129,11 +146,16 @@ def mesuer():
         for j in recodePoint:
             CtlIoutMA(j,step)
             time.sleep(0.5)
-            addSaveStatus(savefile)
+            iset, iout, h, vout = loadStatus()
+            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
+            addSaveStatus(savefile, (iset, iout, h, vout))
         CtlIoutMA(i,step)
         time.sleep(0.5)
-        addSaveStatus(savefile)
+        iset, iout, h, vout = loadStatus()
+        print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
+        addSaveStatus(savefile, (iset, iout, h, vout))
         continue
+
 
     pass
 
@@ -220,14 +242,13 @@ def finary():
         print("終了可能です")
         return
     if FetchIset() != 0.000:
-        power.write("ISET 0.000")
+        CtlIoutMA(0, 0.1)
         time.sleep(1.0)
         if FetchIset() != 0.000:
             sys.exit("バイポーラ電源が命令を受け付けません")
     power.write("OUT 0")
     time.sleep(1.0)
-    powerout = power.query("OUT?")
-    if powerout == 'OUT 000\r\n':
+    if CanOutput() == False:
         print('バイポーラ電源の出力がOFFになりました')
     else:
         print('バイポーラ電源が命令を受け付けません!')
@@ -253,8 +274,28 @@ def main():
         cmd = input(">>>")
         if cmd in {"h", "help", "c", "cmd", "command"}:
             cmdlist()
+        elif cmd in {"quit", "exit", "end"}:
+            break
+
+        elif cmd == "measure":
+            measure()
         elif cmd=="ctlIout":
             cmdCtlIout()
+
+        elif cmd == "status":
+
+            iset, iout, h, vout = loadStatus()
+            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
+
+        elif cmd == "printstatus":
+            now = datetime.datetime.now()
+            startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+            savefile = startTime + ".csv"
+            GenCSVheader(savefile, startTime)
+            iset, iout, h, vout = loadStatus()
+            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
+            addSaveStatus(savefile, (iset, iout, h, vout))
+
         elif cmd == "unsafe":
             UNSAFE = True
             print("enable unsafemode")
@@ -308,9 +349,10 @@ def main():
                 usQueryPower(odr)
         else:
             print("""invaild command\nPlease type "h" or "help" """)
-    # finary()
 
 
 if __name__ == '__main__':
-    # init()
+    init()
     main()
+    finary()
+    exit(0)
