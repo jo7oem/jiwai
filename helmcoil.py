@@ -294,9 +294,12 @@ def finary():
 
 def cmdlist():
     print("""
-    コマンドリスト
-    A
-    B
+    help        :コマンド一覧
+    measure     :測定
+    ctlIout     :出力電流を設定
+    status      :現時点の測定結果を表示
+    savestatus  :現時点の測定結果をファイルに保存
+    exit        :終了
     """)
 
 
@@ -328,7 +331,7 @@ def main():
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
 
-        elif cmd == "printstatus":
+        elif cmd == "savestatus":
             now = datetime.datetime.now()
             startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
             savefile = startTime + ".csv"
