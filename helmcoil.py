@@ -14,9 +14,14 @@ if DEVENV == False:
     power = rm.open_resource("GPIB0::4::INSTR")
 
 
-def getTimef():  # PCから日付と時刻を読み込む
+def get_time_str() -> str:
+    """
+    現時刻を日本語に整形した文字列を返す
+    :rtype: str
+    :return: '2018年9月5日\u300012時47分41秒'
+    """
     now = datetime.datetime.now()
-    print("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second))
+    return str(("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second)))
 
 
 def FetchIout():  # 出力電流の関数
