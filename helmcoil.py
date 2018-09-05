@@ -24,12 +24,24 @@ def get_time_str() -> str:
     return str(("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second)))
 
 
-def FetchIout():  # 出力電流の関数
+def FetchIout() -> float:  # 出力電流の関数
+    """
+    現時点での出力電流をバイポーラ電源から読み取る
+    単位:A
+    :rtype: float
+    :return: 3.210
+    """
     iout = power.query("IOUT?")
     return float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))  # 指定文字を文字列から削除
 
 
-def FetchVout():  # 出力電流の関数
+def FetchVout() -> float:  # 出力電流の関数
+    """
+    現時点での出力電圧をバイポーラ電源から読み取る
+    単位:V
+    :rtype: float
+    :return: 3.210
+    """
     vout = power.query("VOUT?")
     return float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))  # 指定文字を文字列から削除
 
@@ -149,7 +161,7 @@ def measure():
     for i in checkPoint:
         if count==0:
             CtlIoutMA(i,step)
-            cout+=1
+            count += 1
             continue
         isetmA = int(FetchIset() * 1000)
         if i >= isetmA:
