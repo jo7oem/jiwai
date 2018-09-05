@@ -8,7 +8,7 @@ import datetime
 
 UNSAFE = False
 DEVENV = True
-if DEVENV == False:
+if not DEVENV:
     rm = visa.ResourceManager()
     gauss = rm.open_resource("ASRL3::INSTR")
     power = rm.open_resource("GPIB0::4::INSTR")
