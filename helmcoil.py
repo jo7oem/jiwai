@@ -26,18 +26,18 @@ def get_time_str() -> str:
 
 def FetchIout() -> float:  # 出力電流の関数
     """
-    現時点での出力電流をバイポーラ電源から読み取る
+    出力電流を返す
     単位:A
     :rtype: float
     :return: 3.210
     """
     iout = power.query("IOUT?")
-    return float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))  # 指定文字を文字列から削除
+    return float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))
 
 
-def FetchVout() -> float:  # 出力電流の関数
+def FetchVout() -> float:
     """
-    現時点での出力電圧をバイポーラ電源から読み取る
+    出力電圧を返す
     単位:V
     :rtype: float
     :return: 3.210
