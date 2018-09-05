@@ -120,8 +120,8 @@ def CtlIoutMA(target, step=100):
 def GenCSVheader(filename, timeStr):
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(["start time", timeStr])
-        writer.writerow(["IOUTs", "IOUTr", "H field", "VOUT"])
+        writer.writerow(["開始時刻", timeStr])
+        writer.writerow(["設定電流:IOUT[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
 
 
 def measure():
@@ -180,6 +180,14 @@ def measure():
         print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
         addSaveStatus(savefile, (iset, iout, h, vout))
         continue
+
+    now = datetime.datetime.now()
+    endTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    with open(savefile, 'a')as f:
+        writer = csv.writer(f, lineterminator='\n')
+        writer.writerow(["終了時刻", endTime])
+    print("Done")
+
 
 
 
