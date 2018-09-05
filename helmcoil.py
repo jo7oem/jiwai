@@ -126,10 +126,14 @@ def CtlIoutMA(target, step=100):
 
 
 def GenCSVheader(filename, timeStr):
+    print("測定条件等メモ記入欄")
+    memo = input("memo :")
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["開始時刻", timeStr])
         writer.writerow(["設定電流:IOUT[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
+        writer.writerow(["memo", memo])
+        writer.writerow(["#####"])
 
 
 def measure():
@@ -296,7 +300,7 @@ def cmdlist():
     print("""
     help        :コマンド一覧
     measure     :測定
-    ctlIout     :出力電流を設定
+    ctliout     :出力電流を設定
     status      :現時点の測定結果を表示
     savestatus  :現時点の測定結果をファイルに保存
     exit        :終了
