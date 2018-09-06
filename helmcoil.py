@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import visa
 import time
-import os
+#import os
 import sys
 import csv
 import datetime
@@ -264,7 +264,7 @@ def finary():
         print("終了可能です")
         return
     if FetchIset() != 0.000:
-        CtlIoutMA(0, 0.1)
+        CtlIoutMA(0, 1)
         time.sleep(1.0)
         if FetchIset() != 0.000:
             sys.exit("バイポーラ電源が命令を受け付けません")
