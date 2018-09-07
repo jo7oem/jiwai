@@ -125,15 +125,15 @@ def CtlIoutMA(target, step=100):
     print("[Warn]:電流が指定値に合わせられませんでした")
 
 
-def GenCSVheader(filename, timeStr):
+def gen_csv_header(filename, time_str):
     print("測定条件等メモ記入欄")
     memo = input("memo :")
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(["開始時刻", timeStr])
-        writer.writerow(["設定電流:IOUT[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
+        writer.writerow(["開始時刻", time_str])
         writer.writerow(["memo", memo])
         writer.writerow(["#####"])
+        writer.writerow(["設定電流:ISET[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
 
 
 def measure():
@@ -168,7 +168,7 @@ def measure():
     now = datetime.datetime.now()
     startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
     savefile = startTime + ".csv"
-    GenCSVheader(savefile, startTime)
+    gen_csv_header(savefile, startTime)
 
     for i in checkPoint:
         if count==0:
@@ -339,7 +339,7 @@ def main():
             now = datetime.datetime.now()
             startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
             savefile = startTime + ".csv"
-            GenCSVheader(savefile, startTime)
+            gen_csv_header(savefile, startTime)
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
             addSaveStatus(savefile, (iset, iout, h, vout))
