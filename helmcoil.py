@@ -58,7 +58,7 @@ def SetIset(i: float):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
-def SetIsetMA(current: int):
+def SetIsetMA(current: int) -> None:
     SetIset(mA_to_a(current))
 
 
@@ -84,17 +84,17 @@ def loadStatus() -> tuple[float, float, float, float]:
     return iset, iout, field, vout
 
 
-def addSaveStatus(filename: str, status: tuple):
+def addSaveStatus(filename: str, status: tuple) -> None:
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(status)
 
 
-def usWriteGauss(command: str):
+def usWriteGauss(command: str) -> None:
     gauss.write(command)
 
 
-def usWritePower(command: str):
+def usWritePower(command: str) -> None:
     power.write(command)
 
 
@@ -104,7 +104,7 @@ def CanOutput() -> bool:
     return False
 
 
-def CtlIoutMA(target, step=100):
+def CtlIoutMA(target, step=100) -> None:
     if target == FetchIset():
         return
     current = int(FetchIout() * 1000)
@@ -126,7 +126,7 @@ def CtlIoutMA(target, step=100):
     print("[Warn]:電流が指定値に合わせられませんでした")
 
 
-def gen_csv_header(filename, time_str):
+def gen_csv_header(filename, time_str) -> None:
     print("測定条件等メモ記入欄")
     memo = input("memo :")
     with open(filename, 'a')as f:
@@ -137,7 +137,7 @@ def gen_csv_header(filename, time_str):
         writer.writerow(["設定電流:ISET[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
 
 
-def measure():
+def measure() -> None:
     if not CanOutput():
         power.write("OUT 1")
         time.sleep(0.8)
@@ -202,19 +202,19 @@ def measure():
     print("Done")
 
 
-def usQueryGauss(s):
+def usQueryGauss(s) -> None:
     print("=>: " + s)
     print("\n")
     print("<=: " + gauss.query(s))
 
 
-def usQueryPower(s):
+def usQueryPower(s) -> None:
     print("=>: " + s)
     print("\n")
     print("<=: " + power.query(s))
 
 
-def init():
+def init() -> None:
     print("init....")
     """
     接続確認(始動動作)
@@ -277,7 +277,7 @@ def init():
     print('\n初期化が完了しました。\nコマンドリストを開くにはcommandと入力してください。\n')
 
 
-def finary():
+def finary() -> None:
     if power.query("OUT?") == 'OUT 000\r\n':
         print("終了可能です")
         return
@@ -294,7 +294,7 @@ def finary():
         print('バイポーラ電源が命令を受け付けません!')
 
 
-def cmdlist():
+def cmdlist() -> None:
     print("""
     help        :コマンド一覧
     measure     :測定
@@ -305,7 +305,7 @@ def cmdlist():
     """)
 
 
-def cmdCtlIout():
+def cmdCtlIout() -> None:
     print("mA unit in target")
     target = int(input(">>>>>"))
     print("mA unit step")
@@ -313,7 +313,7 @@ def cmdCtlIout():
     CtlIoutMA(target, step)
 
 
-def main():
+def main() -> None:
     unsafe = False
     while True:
         cmd = input(">>>")
