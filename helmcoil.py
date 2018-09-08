@@ -335,9 +335,9 @@ def main() -> None:
 
         elif cmd == "savestatus":
             now = datetime.datetime.now()
-            startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
-            savefile = startTime + ".csv"
-            gen_csv_header(savefile, startTime)
+            start_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+            savefile = start_time + ".csv"
+            gen_csv_header(savefile, start_time)
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
             addSaveStatus(savefile, (iset, iout, h, vout))
