@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import visa
 import time
-import os
 import sys
 import csv
 import datetime
 
-UNSAFE = False
-DEVENV = True
-if not DEVENV:
+DEBUG = True
+if not DEBUG:
     rm = visa.ResourceManager()
     gauss = rm.open_resource("ASRL3::INSTR")
     power = rm.open_resource("GPIB0::4::INSTR")
@@ -316,7 +314,7 @@ def cmdCtlIout():
 
 
 def main():
-    global UNSAFE
+    unsafe = False
     while True:
         cmd = input(">>>")
         if cmd in {"h", "help", "c", "cmd", "command"}:
@@ -345,12 +343,12 @@ def main():
             addSaveStatus(savefile, (iset, iout, h, vout))
 
         elif cmd == "unsafe":
-            UNSAFE = True
+            unsafe = True
             print("enable unsafemode")
         elif cmd == "safe":
-            UNSAFE = False
+            unsafe = False
             print("disable unsafemode")
-        elif UNSAFE and cmd == "tgw":
+        elif unsafe and cmd == "tgw":
             print("Terget: gauss,Method: Write")
             odr = input("###")
             if odr == "":
@@ -362,7 +360,7 @@ def main():
             else:
                 usWriteGauss(odr)
 
-        elif UNSAFE and cmd == "tpw":
+        elif unsafe and cmd == "tpw":
             print("Terget: Power,Method: Write")
             odr = input("###")
             if odr == "":
@@ -373,7 +371,7 @@ def main():
                 continue
             else:
                 usWritePower(odr)
-        elif UNSAFE and cmd == "tgq":
+        elif unsafe and cmd == "tgq":
             print("Terget: Gauss,Method: Query")
             odr = input("###")
             if odr == "":
@@ -384,7 +382,7 @@ def main():
                 continue
             else:
                 usQueryGauss(odr)
-        elif UNSAFE and cmd == "tpq":
+        elif unsafe and cmd == "tpq":
             print("Terget: Power,Method: Query")
             odr = input("###")
             if odr == "":
