@@ -22,7 +22,7 @@ def get_time_str() -> str:
     return str(("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second)))
 
 
-def FetchIout() -> float:  # 出力電流の関数
+def FetchIout() -> float:
     """
     出力電流を返す
     単位:A
@@ -41,17 +41,17 @@ def FetchVout() -> float:
     :return: 3.210
     """
     vout = power.query("VOUT?")
-    return float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))  # 指定文字を文字列から削除
+    return float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))
 
 
-def FetchIset() -> float:  # 出力電流の関数
+def FetchIset() -> float:
     vout = power.query("ISET?")
-    return float(vout.translate(str.maketrans('', '', 'ISET A\r\n')))  # 指定文字を文字列から削除
+    return float(vout.translate(str.maketrans('', '', 'ISET A\r\n')))
 
 
-def FetchVset() -> float:  # 出力電流の関数
+def FetchVset() -> float:
     vout = power.query("VSET?")
-    return float(vout.translate(str.maketrans('', '', 'VSET V\r\n')))  # 指定文字を文字列から削除
+    return float(vout.translate(str.maketrans('', '', 'VSET V\r\n')))
 
 
 def SetIset(i: float):
@@ -66,12 +66,12 @@ def mA_to_a(current: int) -> float:
     return float("%.3f" % (current / 1000))
 
 
-def FetchField() -> float:  # 測定磁界の関数
+def FetchField() -> float:
     value = gauss.query("FIELD?")
     return float(value.translate(str.maketrans('', '', ' \r\n')))
 
 
-def ReadField() -> str:  # 測定磁界の関数
+def ReadField() -> str:
     field_str = gauss.query("FIELD?") + gauss.query("FIELDM?") + gauss.query("UNIT?")
     return field_str.translate(str.maketrans('', '', ' \r\n'))
 
@@ -117,11 +117,11 @@ def CtlIoutMA(target, step=100) -> None:
         time.sleep(0.2)
     SetIsetMA(target)
     time.sleep(0.1)
-    if abs(FetchIout() - target) < 0.01:
+    if abs(FetchIout() - mA_to_a(target)) < 0.01:
         return
     SetIsetMA(target)
     time.sleep(0.3)
-    if abs(FetchIout() - target) < 0.01:
+    if abs(FetchIout() - mA_to_a(target)) < 0.01:
         return
     print("[Warn]:電流が指定値に合わせられませんでした")
 
