@@ -72,8 +72,8 @@ def FetchField() -> float:  # 測定磁界の関数
 
 
 def ReadField() -> str:  # 測定磁界の関数
-    readfield = gauss.query("FIELD?") + gauss.query("FIELDM?") + gauss.query("UNIT?")
-    return readfield.translate(str.maketrans('', '', ' \r\n'))
+    field_str = gauss.query("FIELD?") + gauss.query("FIELDM?") + gauss.query("UNIT?")
+    return field_str.translate(str.maketrans('', '', ' \r\n'))
 
 
 def loadStatus() -> tuple[float, float, float, float]:
@@ -84,7 +84,7 @@ def loadStatus() -> tuple[float, float, float, float]:
     return iset, iout, field, vout
 
 
-def addSaveStatus(filename, status: tuple):
+def addSaveStatus(filename: str, status: tuple):
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(status)
@@ -161,17 +161,17 @@ def measure():
     0A=>+5A=>0A=>-5A=>0A
     mA
     """
-    checkPoint = [0, 5000, 0, -5000, 0]
+    check_point = [0, 5000, 0, -5000, 0]
     mesh = 500
     step = 100
     count = 0
 
     now = datetime.datetime.now()
-    startTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
-    savefile = startTime + ".csv"
-    gen_csv_header(savefile, startTime)
+    start_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    savefile = start_time + ".csv"
+    gen_csv_header(savefile, start_time)
 
-    for i in checkPoint:
+    for i in check_point:
         if count == 0:
             CtlIoutMA(i, step)
             count += 1
@@ -282,7 +282,7 @@ def finary():
         print("終了可能です")
         return
     if FetchIset() != 0.000:
-        CtlIoutMA(0, 0.1)
+        CtlIoutMA(0, 100)
         time.sleep(1.0)
         if FetchIset() != 0.000:
             sys.exit("バイポーラ電源が命令を受け付けません")
