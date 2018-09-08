@@ -76,7 +76,7 @@ def ReadField() -> str:  # 測定磁界の関数
     return field_str.translate(str.maketrans('', '', ' \r\n'))
 
 
-def loadStatus() -> tuple[float, float, float, float]:
+def loadStatus() -> [float, float, float, float]:
     iout = FetchIout()
     iset = FetchIset()
     vout = FetchVout()
@@ -176,12 +176,12 @@ def measure() -> None:
             CtlIoutMA(i, step)
             count += 1
             continue
-        isetmA = int(FetchIset() * 1000)
-        if i >= isetmA:
-            recodePoint = range(isetmA, i, abs(mesh))
+        iset_current = int(FetchIset() * 1000)
+        if i >= iset_current:
+            recode_point = range(iset_current, i, abs(mesh))
         else:
-            recodePoint = range(isetmA, i, abs(mesh) * -1)
-        for j in recodePoint:
+            recode_point = range(iset_current, i, abs(mesh) * -1)
+        for j in recode_point:
             CtlIoutMA(j, step)
             time.sleep(0.5)
             iset, iout, h, vout = loadStatus()
@@ -195,10 +195,10 @@ def measure() -> None:
         continue
 
     now = datetime.datetime.now()
-    endTime = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    end_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
     with open(savefile, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(["終了時刻", endTime])
+        writer.writerow(["終了時刻", end_time])
     print("Done")
 
 
