@@ -46,58 +46,61 @@ def FetchVout() -> float:
     return float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))  # 指定文字を文字列から削除
 
 
-def FetchIset():  # 出力電流の関数
+def FetchIset() -> float:  # 出力電流の関数
     vout = power.query("ISET?")
     return float(vout.translate(str.maketrans('', '', 'ISET A\r\n')))  # 指定文字を文字列から削除
 
 
-def FetchVset():  # 出力電流の関数
+def FetchVset() -> float:  # 出力電流の関数
     vout = power.query("VSET?")
     return float(vout.translate(str.maketrans('', '', 'VSET V\r\n')))  # 指定文字を文字列から削除
 
 
-def SetIset(i):
+def SetIset(i: float):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
-def SetIsetMA(mA):
-    A = "%.3f" % (mA / 1000)
-    SetIset(A)
+def SetIsetMA(current: int):
+    SetIset(mA_to_a(current))
 
 
-def FetchField():  # 測定磁界の関数
+def mA_to_a(current: int) -> float:
+    return float("%.3f" % (current / 1000))
+
+
+def FetchField() -> float:  # 測定磁界の関数
     value = gauss.query("FIELD?")
-    return value.translate(str.maketrans('', '', ' \r\n'))
+    return float(value.translate(str.maketrans('', '', ' \r\n')))
 
 
-def ReadField():  # 測定磁界の関数
+def ReadField() -> str:  # 測定磁界の関数
     readfield = gauss.query("FIELD?") + gauss.query("FIELDM?") + gauss.query("UNIT?")
     return readfield.translate(str.maketrans('', '', ' \r\n'))
 
 
-def loadStatus():
+def loadStatus() -> tuple[float, float, float, float]:
     iout = FetchIout()
     iset = FetchIset()
     vout = FetchVout()
-    H = FetchField()
-    return iset, iout, H, vout
+    field = FetchField()
+    return iset, iout, field, vout
 
 
-def addSaveStatus(filename, status):
+def addSaveStatus(filename, status: tuple):
     with open(filename, 'a')as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(status)
 
 
-def usWriteGauss(s):
-    gauss.write(s)
+def usWriteGauss(command: str):
+    gauss.write(command)
 
 
-def usWritePower(s):
-    power.write(s)
+def usWritePower(command: str):
+    power.write(command)
 
 
-def CanOutput():
+def CanOutput() -> bool:
     if power.query("OUT?") == 'OUT 001\r\n':
         return True
     return False
@@ -106,12 +109,12 @@ def CanOutput():
 def CtlIoutMA(target, step=100):
     if target == FetchIset():
         return
-    mAcurrent = int(FetchIout() * 1000)
-    if mAcurrent < target:
-        ctlPoint = list(range(mAcurrent, int(target), abs(int(step))))
+    current = int(FetchIout() * 1000)
+    if current < target:
+        transit_current = list(range(current, int(target), abs(int(step))))
     else:
-        ctlPoint = list(range(mAcurrent, int(target), abs(int(step)) * -1))
-    for mA in ctlPoint:
+        transit_current = list(range(current, int(target), abs(int(step)) * -1))
+    for mA in transit_current:
         SetIsetMA(mA)
         time.sleep(0.2)
     SetIsetMA(target)
@@ -171,8 +174,8 @@ def measure():
     gen_csv_header(savefile, startTime)
 
     for i in checkPoint:
-        if count==0:
-            CtlIoutMA(i,step)
+        if count == 0:
+            CtlIoutMA(i, step)
             count += 1
             continue
         isetmA = int(FetchIset() * 1000)
@@ -199,9 +202,6 @@ def measure():
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["終了時刻", endTime])
     print("Done")
-
-
-
 
 
 def usQueryGauss(s):
