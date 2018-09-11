@@ -15,36 +15,64 @@ if not DEBUG:
 def get_time_str() -> str:
     """
     現時刻を日本語に整形した文字列を返す
+    ------------------------------
     :rtype: str
-    :return: '2018年9月5日\u300012時47分41秒'
+    :return: '2018-09-08 20:55:07'
     """
-    now = datetime.datetime.now()
-    return str(("%s年%s月%s日　%s時%s分%s秒" % (now.year, now.month, now.day, now.hour, now.minute, now.second)))
+    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
 def FetchIout() -> float:
     """
-    出力電流を返す
+    現在の出力電流を取得する
     単位:A
+
+    Notes
+    -----
+    Query  : "IOUT?"
+    Answer : 'IOUT  0.012A\r\n'
+    ----------
     :rtype: float
-    :return: 3.210
+    :return: 0.012
     """
     iout = power.query("IOUT?")
-    return float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))
+    current = float(iout.translate(str.maketrans('', '', 'IOUT A\r\n')))
+    return current
 
 
 def FetchVout() -> float:
     """
-    出力電圧を返す
+    現在の出力電圧を取得する
     単位:V
+
+    Notes
+    -----
+    Query  : "VOUT?"
+    Answer : 'VOUT  0.015V\r\n'
+
+    ----------
     :rtype: float
-    :return: 3.210
+    :return: 0.015
     """
     vout = power.query("VOUT?")
-    return float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))
+    voltage = float(vout.translate(str.maketrans('', '', 'VOUT V\r\n')))
+    return voltage
 
 
 def FetchIset() -> float:
+    """
+    現在の設定出力電流を取得する
+    単位:A
+
+    Notes
+    -----
+    Query   : "ISET?"
+    Answer  : 'ISET  0.010A\r\n'
+
+    --------
+    :rtype: float
+    :return: 0.010
+    """
     vout = power.query("ISET?")
     return float(vout.translate(str.maketrans('', '', 'ISET A\r\n')))
 
@@ -85,7 +113,7 @@ def loadStatus() -> [float, float, float, float]:
 
 
 def addSaveStatus(filename: str, status: tuple) -> None:
-    with open(filename, 'a')as f:
+    with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(status)
 
@@ -129,7 +157,7 @@ def CtlIoutMA(target, step=100) -> None:
 def gen_csv_header(filename, time_str) -> None:
     print("測定条件等メモ記入欄")
     memo = input("memo :")
-    with open(filename, 'a')as f:
+    with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["開始時刻", time_str])
         writer.writerow(["memo", memo])
@@ -166,8 +194,7 @@ def measure() -> None:
     step = 100
     count = 0
 
-    now = datetime.datetime.now()
-    start_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    start_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
     savefile = start_time + ".csv"
     gen_csv_header(savefile, start_time)
 
@@ -194,9 +221,8 @@ def measure() -> None:
         addSaveStatus(savefile, (iset, iout, h, vout))
         continue
 
-    now = datetime.datetime.now()
-    end_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
-    with open(savefile, 'a')as f:
+    end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    with open(savefile, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["終了時刻", end_time])
     print("Done")
