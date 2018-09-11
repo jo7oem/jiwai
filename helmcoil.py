@@ -304,40 +304,23 @@ def init() -> None:
         sys.exit("接続を確認してください")
 
     # バイポーラのOUTPUTをON
-    allow_power_output(False)
-    time.sleep(1.0)
-    if FetchIset() != 0.000:
-        power.write("ISET 0.000")
-        time.sleep(1.0)
-        if FetchIset() != 0.000:
-            sys.exit("バイポーラ電源が命令を受け付けません")
-
-    allow_power_output(True)
-    time.sleep(1.0)
-    if CanOutput():
-        print('バイポーラ電源の出力がONになりました')
-
-    else:
-        print('バイポーラ電源の出力がONになっていません')
-
+    try:
+        allow_power_output(True)
+    except Exception:
+        print("バイポーラ電源制御異常")
+        raise
     print('\n初期化が完了しました。\nコマンドリストを開くにはcommandと入力してください。\n')
 
 
 def after_operations() -> None:
-    if not CanOutput():
-        print("終了可能です")
-        return
-    if FetchIset() != 0.000:
-        CtlIoutMA(0, 100)
-        time.sleep(1.0)
-        if FetchIset() != 0.000:
-            sys.exit("バイポーラ電源が命令を受け付けません")
-    allow_power_output(False)
-    time.sleep(1.0)
-    if not CanOutput():
-        print('バイポーラ電源の出力がOFFになりました')
-    else:
-        print('バイポーラ電源が命令を受け付けません!')
+    print("終了処理を開始します。")
+    try:
+        allow_power_output(False)
+    except Exception:
+        print("バイポーラ電源制御異常")
+        CtlIoutMA(0)
+    finally:
+        print("終了")
 
 
 def cmdlist() -> None:
