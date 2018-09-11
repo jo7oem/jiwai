@@ -86,6 +86,13 @@ def SetIset(i: float):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
+def allow_power_output(allow: bool) -> None:
+    if allow:
+        power.write("OUT 1")
+    else:
+        power.write("OUT 0")
+
+
 def SetIsetMA(current: int) -> None:
     SetIset(mA_to_a(current))
 
