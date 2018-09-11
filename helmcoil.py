@@ -86,11 +86,25 @@ def SetIset(i: float):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
-def allow_power_output(allow: bool) -> None:
-    if allow:
+def allow_power_output(operation: bool) -> None:
+    now_output = CanOutput()
+    if now_output == operation:
+        return
+    iset = FetchIset()
+    if iset != 0:
+        if not now_output:
+            SetIset(0)
+        else:
+            CtlIoutMA(0)
+    time.sleep(0.1)
+    if operation:
         power.write("OUT 1")
     else:
         power.write("OUT 0")
+    time.sleep(0.1)
+    if CanOutput() == operation:
+        return
+    raise Exception("バイポーラ電源出力制御不能")
 
 
 def SetIsetMA(current: int) -> None:
