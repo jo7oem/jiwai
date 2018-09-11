@@ -290,7 +290,7 @@ def init() -> None:
         sys.exit("接続を確認してください")
 
     # バイポーラのOUTPUTをON
-    power.write("OUT 0")
+    allow_power_output(False)
     time.sleep(1.0)
     if FetchIset() != 0.000:
         power.write("ISET 0.000")
@@ -298,10 +298,9 @@ def init() -> None:
         if FetchIset() != 0.000:
             sys.exit("バイポーラ電源が命令を受け付けません")
 
-    power.write("OUT 1")
+    allow_power_output(True)
     time.sleep(1.0)
-    powerout = power.query("OUT?")
-    if powerout == 'OUT 001\r\n':
+    if CanOutput():
         print('バイポーラ電源の出力がONになりました')
 
     else:
@@ -310,8 +309,8 @@ def init() -> None:
     print('\n初期化が完了しました。\nコマンドリストを開くにはcommandと入力してください。\n')
 
 
-def finary() -> None:
-    if power.query("OUT?") == 'OUT 000\r\n':
+def after_operations() -> None:
+    if not CanOutput():
         print("終了可能です")
         return
     if FetchIset() != 0.000:
@@ -319,7 +318,7 @@ def finary() -> None:
         time.sleep(1.0)
         if FetchIset() != 0.000:
             sys.exit("バイポーラ電源が命令を受け付けません")
-    power.write("OUT 0")
+    allow_power_output(False)
     time.sleep(1.0)
     if not CanOutput():
         print('バイポーラ電源の出力がOFFになりました')
@@ -433,5 +432,5 @@ def main() -> None:
 if __name__ == '__main__':
     init()
     main()
-    finary()
+    after_operations()
     exit(0)
