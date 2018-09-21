@@ -78,15 +78,51 @@ def FetchIset() -> float:
 
 
 def FetchVset() -> float:
+    """
+    現在の設定出力電圧を取得する
+    単位:V
+
+    Notes
+    -----
+    Query   : "VSET?"
+    Answer  : 'VSET  1.234V\r\n'
+
+    --------
+    :rtype: float
+    :return: 1.234
+    """
     vout = power.query("VSET?")
     return float(vout.translate(str.maketrans('', '', 'VSET V\r\n')))
 
 
 def SetIset(i: float):
+    """
+    出力電流を設定する。
+    単位: A
+
+    Notes
+    -----
+    Write   : "ISET 1.234"
+
+    --------
+    :param i: 設定電圧[A]
+    :return:
+    """
     power.write("ISET " + "%.3f" % (float(i)))
 
 
 def allow_power_output(operation: bool) -> None:
+    """
+    安全にバイポーラ電源の出力をON/OFFにする
+
+    Raise
+    -----
+    Exception   : 制御できないとき
+
+    --------
+    :param operation: 出力を許可するか？
+    :return: None
+    """
     now_output = CanOutput()
     if now_output == operation:
         return
@@ -104,7 +140,7 @@ def allow_power_output(operation: bool) -> None:
     time.sleep(0.1)
     if CanOutput() == operation:
         return
-    raise Exception("バイポーラ電源出力制御不能")
+    raise Exception("バイポーラ電源出力制御不能")  # todo:例外クラスを作る
 
 
 def SetIsetMA(current: int) -> None:
@@ -112,10 +148,29 @@ def SetIsetMA(current: int) -> None:
 
 
 def mA_to_a(current: int) -> float:
+    """
+    単位を変換する
+
+    --------
+    :param current: 電流[mA] 1234
+    :return: 電流[A] 1.234
+    """
     return float("%.3f" % (current / 1000))
 
 
 def FetchField() -> float:
+    """
+    磁束密度を取得する
+    単位は取得できない
+
+    Notes
+    -----
+    Query   : "FIELD?"
+    Answer  : "102.3"
+
+    --------
+    :return: 102.3
+    """
     value = gauss.query("FIELD?")
     return float(value.translate(str.maketrans('', '', ' \r\n')))
 
@@ -316,7 +371,7 @@ def after_operations() -> None:
     print("終了処理を開始します。")
     try:
         allow_power_output(False)
-    except Exception:
+    except Exception:  # todo: 例外クラスを作る
         print("バイポーラ電源制御異常")
         CtlIoutMA(0)
     finally:
