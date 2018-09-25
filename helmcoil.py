@@ -111,6 +111,44 @@ def SetIset(i: float):
     power.write("ISET " + "%.3f" % (float(i)))
 
 
+def FetchIFine() -> int:
+    """
+    現在の電流ファイン値を取得する
+    単位:int8(-128~+127)
+
+    Notes?not real answer
+    -----
+    Query   : "IFINE?"
+    Answer  : 'IFINE 1V\r\n'
+
+    --------
+    :rtype: int
+    :return: 1
+    """
+    ifine = power.query("IFINE?")
+    return int(ifine.translate(str.maketrans('', '', 'IFINE\r\n')))
+
+
+def SetIFine(fine: int):
+    """
+    電流ファイン値を設定する
+    単位:int8(-128~127)
+
+    Notes
+    -----
+    Write   : "IFINE 3"
+
+    --------
+    :param fine:ファイン値
+    :return:
+    """
+    if fine < -128:
+        fine = -128
+    elif fine > 127:
+        fine = 127
+    power.write("IFINE " + str(fine))
+
+
 def allow_power_output(operation: bool) -> None:
     """
     安全にバイポーラ電源の出力をON/OFFにする
@@ -206,6 +244,28 @@ def CanOutput() -> bool:
     if power.query("OUT?") == 'OUT 001\r\n':
         return True
     return False
+
+
+def bins(target, nowl, step):
+    if target == nowl:
+        print(nowl, "OK")
+        return
+    if step == 0 and nowl == -127:
+        print("-128 ope")
+        bins(target, -128, 0)
+        return
+    if step == 0:
+        print(nowl, "Botm")
+        return
+    step = step - 1
+    if target > nowl:
+        print(nowl, "BB", step)
+        bins(target, nowl + 2 ** step, step)
+        return
+    else:
+        print(nowl, "SS", step)
+        bins(target, nowl - 2 ** step, step)
+        return
 
 
 def CtlIoutMA(target, step=100) -> None:
@@ -380,13 +440,13 @@ def after_operations() -> None:
 
 def cmdlist() -> None:
     print("""
-    help        :コマンド一覧
-    measure     :測定
-    ctliout     :出力電流を設定
-    status      :現時点の測定結果を表示
-    savestatus  :現時点の測定結果をファイルに保存
-    exit        :終了
-    """)
+help        :コマンド一覧
+measure     :測定
+ctliout     :出力電流を設定
+status      :現時点の測定結果を表示
+savestatus  :現時点の測定結果をファイルに保存
+exit        :終了
+""")
 
 
 def cmdCtlIout() -> None:
