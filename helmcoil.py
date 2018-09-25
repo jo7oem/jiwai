@@ -12,6 +12,16 @@ if not DEBUG:
     power = rm.open_resource("GPIB0::4::INSTR")
 
 
+class ControlError(Exception):
+    """
+    機器制御エラー
+    期待に沿った動作を受け付けない時に投げられる
+    """
+
+    def __init__(self, message):
+        self.message = message
+
+
 def get_time_str() -> str:
     """
     現時刻を日本語に整形した文字列を返す
@@ -178,7 +188,7 @@ def allow_power_output(operation: bool) -> None:
     time.sleep(0.1)
     if CanOutput() == operation:
         return
-    raise Exception("バイポーラ電源出力制御不能")  # todo:例外クラスを作る
+    raise ControlError("バイポーラ電源出力制御失敗")
 
 
 def SetIsetMA(current: int) -> None:
@@ -431,7 +441,7 @@ def after_operations() -> None:
     print("終了処理を開始します。")
     try:
         allow_power_output(False)
-    except Exception:  # todo: 例外クラスを作る
+    except ControlError:
         print("バイポーラ電源制御異常")
         CtlIoutMA(0)
     finally:
