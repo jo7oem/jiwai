@@ -206,6 +206,17 @@ def mA_to_a(current: int) -> float:
     return float("%.3f" % (current / 1000))
 
 
+def A_to_mA(current: float) -> int:
+    """
+    単位を変換する
+
+    --------
+    :param current: 電流[A] 1.234
+    :return: 電流[A] 1234
+    """
+    return int(current * 1000)
+
+
 def FetchField() -> float:
     """
     磁束密度を取得する
@@ -256,25 +267,23 @@ def CanOutput() -> bool:
     return False
 
 
-def bins(target, nowl, step):
-    if target == nowl:
-        print(nowl, "OK")
+def auto_IFine_binary(target: int, fine: int, ttl: int):
+    SetIFine(fine)
+    time.sleep(0.05)
+    current = A_to_mA(FetchIout())
+    if abs(current - target) <= 1:
         return
-    if step == 0 and nowl == -127:
-        print("-128 ope")
-        bins(target, -128, 0)
+    if ttl == 0 and fine == -127:
+        auto_IFine_binary(target, -128, 0)
         return
-    if step == 0:
-        print(nowl, "Botm")
+    if ttl == 0:
         return
-    step = step - 1
-    if target > nowl:
-        print(nowl, "BB", step)
-        bins(target, nowl + 2 ** step, step)
+    ttl = ttl - 1
+    if target > current:
+        auto_IFine_binary(target, fine + 2 ** ttl, ttl)
         return
     else:
-        print(nowl, "SS", step)
-        bins(target, nowl - 2 ** step, step)
+        auto_IFine_binary(target, fine - 2 ** ttl, ttl)
         return
 
 
