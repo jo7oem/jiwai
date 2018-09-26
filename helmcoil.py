@@ -267,6 +267,9 @@ def CanOutput() -> bool:
     return False
 
 
+FINELIST = list()
+
+
 def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
     SetIFine(fine)
     time.sleep(0.05)
@@ -285,7 +288,7 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
         return auto_IFine_binary(target, fine - 2 ** ttl, ttl)
 
 
-def CtlIoutMA(target, step=100) -> None:
+def CtlIoutMA(target, step=100, auto_fine=False) -> None:
     if target == FetchIset():
         return
     current = int(FetchIout() * 1000)
@@ -298,13 +301,10 @@ def CtlIoutMA(target, step=100) -> None:
         time.sleep(0.1)
     SetIsetMA(target)
     time.sleep(0.1)
-    if abs(FetchIout() - mA_to_a(target)) < 0.01:
+    if not auto_fine:
         return
-    SetIsetMA(target)
-    time.sleep(0.3)
-    if abs(FetchIout() - mA_to_a(target)) < 0.01:
-        return
-    print("[Warn]:電流が指定値に合わせられませんでした")
+    global FINELIST
+    FINELIST.append(auto_IFine_binary(target, 0, 7))
 
 
 def gen_csv_header(filename, time_str) -> None:
