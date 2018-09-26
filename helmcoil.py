@@ -366,24 +366,30 @@ def CtlIoutMA(target, step=100, auto_fine=False) -> None:
     current = A_to_mA(FetchIout())
     if target == A_to_mA(FetchIset()):
         return
+
     if current < target:
-        transit_current = list(range(current, int(target), abs(int(step))))
+        transit_current = list(range(current, int(target), abs(int(step))))  # 経由電流値
     else:
         transit_current = list(range(current, int(target), abs(int(step)) * -1))
+
     for mA in transit_current:
         SetIsetMA(mA)
         time.sleep(0.1)
+
     SetIsetMA(target)
     time.sleep(0.1)
     diff_iout = A_to_mA(FetchIout()) - target
+
     if not auto_fine or abs(diff_iout) <= 1:
         return
+
     global FINECONST
     if len(FINECONST) < 10:
         fine = (auto_IFine_binary(target, 0, 7))
     else:
         sfine = int(diff_iout * average(FINECONST))
         fine = auto_IFine_step(sfine)
+
     if fine == 127 or fine == 0 or fine == -128:
         return
     FINECONST.append(diff_iout / fine)
@@ -401,14 +407,11 @@ def gen_csv_header(filename, time_str) -> None:
 
 
 def measure() -> None:
-    if not CanOutput():
-        power.write("OUT 1")
-        time.sleep(0.8)
-        if not CanOutput():
-            print("出力をONにできません")
-            return
-        print("出力をONに変更しました")
-    print("出力が許可されています。")
+    try:
+        allow_power_output(True)
+    except ControlError:
+        print("[FATAL]バイポーラ電源制御エラー!!")
+        return
 
     gauss.write("RANGE 2")
     time.sleep(0.1)
@@ -438,17 +441,20 @@ def measure() -> None:
             CtlIoutMA(i, step)
             count += 1
             continue
+
         iset_current = int(FetchIset() * 1000)
         if i >= iset_current:
             recode_point = range(iset_current, i, abs(mesh))
         else:
             recode_point = range(iset_current, i, abs(mesh) * -1)
+
         for j in recode_point:
             CtlIoutMA(j, step)
             time.sleep(0.5)
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
             addSaveStatus(savefile, (iset, iout, h, vout))
+
         CtlIoutMA(i, step)
         time.sleep(0.5)
         iset, iout, h, vout = loadStatus()
