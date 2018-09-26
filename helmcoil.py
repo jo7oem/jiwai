@@ -165,7 +165,7 @@ def allow_power_output(operation: bool) -> None:
 
     Raise
     -----
-    Exception   : 制御できないとき
+    ControlError   : 制御できないとき
 
     --------
     :param operation: 出力を許可するか？
@@ -267,24 +267,22 @@ def CanOutput() -> bool:
     return False
 
 
-def auto_IFine_binary(target: int, fine: int, ttl: int):
+def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
     SetIFine(fine)
     time.sleep(0.05)
     current = A_to_mA(FetchIout())
     if abs(current - target) <= 1:
-        return
+        return fine
     if ttl == 0 and fine == -127:
         auto_IFine_binary(target, -128, 0)
-        return
+        return auto_IFine_binary(target, -128, 0)
     if ttl == 0:
-        return
+        return fine
     ttl = ttl - 1
     if target > current:
-        auto_IFine_binary(target, fine + 2 ** ttl, ttl)
-        return
+        return auto_IFine_binary(target, fine + 2 ** ttl, ttl)
     else:
-        auto_IFine_binary(target, fine - 2 ** ttl, ttl)
-        return
+        return auto_IFine_binary(target, fine - 2 ** ttl, ttl)
 
 
 def CtlIoutMA(target, step=100) -> None:
@@ -297,7 +295,7 @@ def CtlIoutMA(target, step=100) -> None:
         transit_current = list(range(current, int(target), abs(int(step)) * -1))
     for mA in transit_current:
         SetIsetMA(mA)
-        time.sleep(0.2)
+        time.sleep(0.1)
     SetIsetMA(target)
     time.sleep(0.1)
     if abs(FetchIout() - mA_to_a(target)) < 0.01:
