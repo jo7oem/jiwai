@@ -118,7 +118,7 @@ def SetIset(i: float):
     :param i: 設定電圧[A]
     :return:
     """
-    power.write("ISET " + "%.3f" % (float(i)))
+    power.write("ISET {0:.3f}".format(i))
 
 
 def FetchIFine() -> int:
@@ -203,7 +203,7 @@ def mA_to_a(current: int) -> float:
     :param current: 電流[mA] 1234
     :return: 電流[A] 1.234
     """
-    return float("%.3f" % (current / 1000))
+    return float("{0:.3f}".format(current / 1000))
 
 
 def average(il: list) -> float:
