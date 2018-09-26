@@ -449,14 +449,14 @@ def measure() -> None:
             recode_point = range(iset_current, i, abs(mesh) * -1)
 
         for j in recode_point:
-            CtlIoutMA(j, step)
-            time.sleep(0.5)
+            CtlIoutMA(j, step, True)  # 測定電流
+            time.sleep(0.3)
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
             addSaveStatus(savefile, (iset, iout, h, vout))
 
-        CtlIoutMA(i, step)
-        time.sleep(0.5)
+        CtlIoutMA(i, step, True)  # 測定電流
+        time.sleep(0.3)
         iset, iout, h, vout = loadStatus()
         print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
         addSaveStatus(savefile, (iset, iout, h, vout))
