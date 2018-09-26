@@ -206,6 +206,10 @@ def mA_to_a(current: int) -> float:
     return float("%.3f" % (current / 1000))
 
 
+def average(il) -> float:
+    return sum(il) / len(il)
+
+
 def A_to_mA(current: float) -> int:
     """
     単位を変換する
@@ -267,7 +271,27 @@ def CanOutput() -> bool:
     return False
 
 
-FINELIST = list()
+def auto_IFine_step(target, fine=0) -> int:
+    SetIFine(fine)
+    time.sleep(0.05)
+    fineadd = None
+    while True:
+        current = A_to_mA(FetchIout())
+        diff = target - current
+        if abs(diff) <= 1:
+            return fine
+        elif diff > 0 and (fine == 127 or not fineadd):
+            return fine
+        elif diff < 0 and (fine == -128 or fineadd):
+            return fine
+        elif diff > 0:
+            fine = fine + 1
+            fineadd = True
+        else:  # target<current
+            fine = fine - 1
+            fineadd = False
+        SetIFine(fine)
+        time.sleep(0.04)
 
 
 def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
@@ -288,6 +312,9 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
         return auto_IFine_binary(target, fine - 2 ** ttl, ttl)
 
 
+FINECONST = list()
+
+
 def CtlIoutMA(target, step=100, auto_fine=False) -> None:
     if target == FetchIset():
         return
@@ -301,10 +328,18 @@ def CtlIoutMA(target, step=100, auto_fine=False) -> None:
         time.sleep(0.1)
     SetIsetMA(target)
     time.sleep(0.1)
-    if not auto_fine:
+    diff_iout = A_to_mA(FetchIout()) - target
+    if not auto_fine or abs(diff_iout) <= 1:
         return
-    global FINELIST
-    FINELIST.append(auto_IFine_binary(target, 0, 7))
+    global FINECONST
+    if len(FINECONST) < 10:
+        fine = (auto_IFine_binary(target, 0, 7))
+    else:
+        sfine = int(diff_iout * average(FINECONST))
+        fine = auto_IFine_step(sfine)
+    if fine == 127 or fine == 0 or fine == -128:
+        return
+    FINECONST.append(diff_iout / fine)
 
 
 def gen_csv_header(filename, time_str) -> None:
