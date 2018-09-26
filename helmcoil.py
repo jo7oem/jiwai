@@ -206,7 +206,7 @@ def mA_to_a(current: int) -> float:
     return float("%.3f" % (current / 1000))
 
 
-def average(il) -> float:
+def average(il: list) -> float:
     return sum(il) / len(il)
 
 
@@ -244,6 +244,12 @@ def ReadField() -> str:
 
 
 def loadStatus() -> [float, float, float, float]:
+    """
+    各ステータスをまとめて取得する
+
+    --------
+    :return: 5.000,5.003,102.3,2.432
+    """
     iout = FetchIout()
     iset = FetchIset()
     vout = FetchVout()
@@ -252,6 +258,14 @@ def loadStatus() -> [float, float, float, float]:
 
 
 def addSaveStatus(filename: str, status: tuple) -> None:
+    """
+    ファイルにステータスを追記する
+
+    --------
+    :param filename: 書き込むファイル名
+    :param status: 書き込むデータ
+    :return:
+    """
     with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(status)
@@ -266,12 +280,27 @@ def usWritePower(command: str) -> None:
 
 
 def CanOutput() -> bool:
+    """
+    電源出力が可能かを返す
+    --------
+    :return:
+    """
     if power.query("OUT?") == 'OUT 001\r\n':
         return True
     return False
 
 
 def auto_IFine_step(target, fine=0) -> int:
+    """
+    Auto IFINEの単純な実装
+    与えられたFINE値から1ずつ変えて試す
+    調整幅が5以下ならばこちらのほうが早い
+
+    --------
+    :param target: 目標電流[mA]
+    :param fine: 初期FINE値
+    :return: 設定されたFINE値
+    """
     SetIFine(fine)
     time.sleep(0.05)
     fineadd = None
@@ -295,6 +324,16 @@ def auto_IFine_step(target, fine=0) -> int:
 
 
 def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
+    """
+    auto IFINEの2分探索実装
+    期待値6ステップ,最悪-128のみ8,大半は7ステップで完了する
+
+    --------
+    :param target: 目標電流[mA]
+    :param fine: 測定するFINE値
+    :param ttl: 残りステップ数
+    :return:    最終FINE値
+    """
     SetIFine(fine)
     time.sleep(0.05)
     current = A_to_mA(FetchIout())
@@ -312,13 +351,21 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
         return auto_IFine_binary(target, fine - 2 ** ttl, ttl)
 
 
-FINECONST = list()
+FINECONST = list()  # diff/fine の値を蓄積していく
 
 
 def CtlIoutMA(target, step=100, auto_fine=False) -> None:
-    if target == FetchIset():
+    """
+    安全に電流を設定値にあわせる
+    limitに引っかからないようにstep ごとに徐々に電流を変化させる
+    --------
+    :param target:  目標電流[mA]
+    :param step:    変化させる電流幅[mA]
+    :param auto_fine: autoFINEを使用するか
+    """
+    current = A_to_mA(FetchIout())
+    if target == A_to_mA(FetchIset()):
         return
-    current = int(FetchIout() * 1000)
     if current < target:
         transit_current = list(range(current, int(target), abs(int(step))))
     else:
