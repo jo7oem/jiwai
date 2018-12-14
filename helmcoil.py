@@ -181,7 +181,7 @@ def allow_power_output(operation: bool) -> None:
         if not now_output:
             SetIset(0)
         else:
-            CtlIoutMA(0)
+            ctl_iout_ma(0)
     time.sleep(0.1)
     if operation:
         power.write("OUT 1")
@@ -327,7 +327,7 @@ def auto_IFine_step(target, fine=0) -> int:
         time.sleep(0.07)
 
 
-def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
+def auto_i_fine_binary(target: int, fine: int, ttl: int) -> int:
     """
     auto IFINEの2分探索実装
     期待値6ステップ,最悪-128のみ8,大半は7ステップで完了する
@@ -346,21 +346,21 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
     if abs(diffi) == 0:
         return fine
     if ttl == 0 and fine == -127:
-        auto_IFine_binary(target, -128, 0)
-        return auto_IFine_binary(target, -128, 0)
+        auto_i_fine_binary(target, -128, 0)
+        return auto_i_fine_binary(target, -128, 0)
     if ttl == 0:
         return fine
     ttl = ttl - 1
     if target > current:
-        return auto_IFine_binary(target, fine + 2 ** ttl, ttl)
+        return auto_i_fine_binary(target, fine + 2 ** ttl, ttl)
     else:
-        return auto_IFine_binary(target, fine - 2 ** ttl, ttl)
+        return auto_i_fine_binary(target, fine - 2 ** ttl, ttl)
 
 
 FINECONST = list()  # diff/fine の値を蓄積していく
 
 
-def CtlIoutMA(target: int, step: int = 100, auto_fine: bool = False) -> None:
+def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     """
     安全に電流を設定値にあわせる
     limitに引っかからないようにstep ごとに徐々に電流を変化させる
@@ -398,7 +398,7 @@ def CtlIoutMA(target: int, step: int = 100, auto_fine: bool = False) -> None:
     time.sleep(0.55)
     global FINECONST
     if True:
-        fine = (auto_IFine_binary(target, 0, 7))
+        fine = (auto_i_fine_binary(target, 0, 7))
     else:
         # sfine = int(diff_iout * average(FINECONST))
 
@@ -452,7 +452,7 @@ def measure() -> None:
 
     for i in check_point:
         if count == 0:
-            CtlIoutMA(i, step)
+            ctl_iout_ma(i, step)
             count += 1
             continue
 
@@ -463,13 +463,13 @@ def measure() -> None:
             recode_point = range(iset_current, i, abs(mesh) * -1)
 
         for j in recode_point:
-            CtlIoutMA(j, step, True)  # 測定電流
+            ctl_iout_ma(j, step, True)  # 測定電流
             time.sleep(0.3)
             iset, iout, h, vout = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
             addSaveStatus(savefile, (iset, iout, h, vout))
 
-        CtlIoutMA(i, step, True)  # 測定電流
+        ctl_iout_ma(i, step, True)  # 測定電流
         time.sleep(0.3)
         iset, iout, h, vout = loadStatus()
         print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
@@ -528,7 +528,7 @@ def init() -> None:
     else:
         print('ガウスメーターのレンジを確認してください')
     # バイポーラ電源の初期化
-    CtlIoutMA(0, 100, False)
+    ctl_iout_ma(0, 100, False)
     current = FetchIout()
 
     if abs(current) < 0.009:
@@ -553,7 +553,7 @@ def after_operations() -> None:
         allow_power_output(False)
     except ControlError:
         print("バイポーラ電源制御異常")
-        CtlIoutMA(0)
+        ctl_iout_ma(0)
     finally:
         print("終了")
 
@@ -575,7 +575,7 @@ def cmdCtlIout() -> None:
     target = int(input(">>>>>"))
     print("mA unit step")
     step = int(input(">>>>>"))
-    CtlIoutMA(target, step, FLAG_AUTOFINE)
+    ctl_iout_ma(target, step, FLAG_AUTOFINE)
 
 
 FLAG_AUTOFINE = False
