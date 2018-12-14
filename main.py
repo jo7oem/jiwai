@@ -8,11 +8,10 @@ Run > Run Moduleを選択するかF5キーを押してプログラム開始
 ただし小数点以下2桁まで
 
 """
-import visa
-import time
-import os
-import sys
 import datetime
+import time
+
+import visa
 
 rm = visa.ResourceManager()
 gauss = rm.open_resource("ASRL3::INSTR")

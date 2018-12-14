@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-import visa
-import time
-import sys
 import csv
 import datetime
+import sys
+import time
+
+import visa
 
 DEBUG = True
+
 if not DEBUG:
     rm = visa.ResourceManager()
     gauss = rm.open_resource("ASRL3::INSTR")
@@ -292,6 +294,8 @@ def CanOutput() -> bool:
 
 def auto_IFine_step(target, fine=0) -> int:
     """
+    この実装はこわれている
+
     Auto IFINEの単純な実装
     与えられたFINE値から1ずつ変えて試す
     調整幅が5以下ならばこちらのほうが早い
@@ -307,7 +311,7 @@ def auto_IFine_step(target, fine=0) -> int:
     while True:
         current = A_to_mA(FetchIout())
         diff = target - current
-        if abs(diff) <= 1:
+        if abs(diff) == 0:
             return fine
         elif diff > 0 and (fine == 127 or not fineadd):
             return fine
@@ -320,7 +324,7 @@ def auto_IFine_step(target, fine=0) -> int:
             fine = fine - 1
             fineadd = False
         SetIFine(fine)
-        time.sleep(0.04)
+        time.sleep(0.07)
 
 
 def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
@@ -335,9 +339,11 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
     :return:    最終FINE値
     """
     SetIFine(fine)
-    time.sleep(0.05)
+    time.sleep(0.4)
     current = A_to_mA(FetchIout())
-    if abs(current - target) <= 1:
+    diffi = current - target
+    print(diffi, "TTL:", ttl, "fine", fine)
+    if abs(diffi) == 0:
         return fine
     if ttl == 0 and fine == -127:
         auto_IFine_binary(target, -128, 0)
@@ -354,23 +360,29 @@ def auto_IFine_binary(target: int, fine: int, ttl: int) -> int:
 FINECONST = list()  # diff/fine の値を蓄積していく
 
 
-def CtlIoutMA(target, step=100, auto_fine=False) -> None:
+def CtlIoutMA(target: int, step: int = 100, auto_fine: bool = False) -> None:
     """
     安全に電流を設定値にあわせる
     limitに引っかからないようにstep ごとに徐々に電流を変化させる
+    step>300で強制的に300に安全のため固定
     --------
     :param target:  目標電流[mA]
     :param step:    変化させる電流幅[mA]
     :param auto_fine: autoFINEを使用するか
     """
+    if auto_fine:
+        SetIFine(0)
+        time.sleep(0.2)
     current = A_to_mA(FetchIout())
-    if target == A_to_mA(FetchIset()):
+    if target == current:
         return
+    if abs(step) > 300:
+        step = 300
 
     if current < target:
-        transit_current = list(range(current, int(target), abs(int(step))))  # 経由電流値
+        transit_current = range(current, target, abs(step))  # 経由電流値
     else:
-        transit_current = list(range(current, int(target), abs(int(step)) * -1))
+        transit_current = range(current, target, abs(step) * -1)
 
     for mA in transit_current:
         SetIsetMA(mA)
@@ -383,12 +395,14 @@ def CtlIoutMA(target, step=100, auto_fine=False) -> None:
     if not auto_fine or abs(diff_iout) <= 1:
         return
 
+    time.sleep(0.55)
     global FINECONST
-    if len(FINECONST) < 10:
+    if True:
         fine = (auto_IFine_binary(target, 0, 7))
     else:
-        sfine = int(diff_iout * average(FINECONST))
-        fine = auto_IFine_step(sfine)
+        # sfine = int(diff_iout * average(FINECONST))
+
+        fine = auto_IFine_step(0)
 
     if fine == 127 or fine == 0 or fine == -128:
         return
@@ -514,6 +528,7 @@ def init() -> None:
     else:
         print('ガウスメーターのレンジを確認してください')
     # バイポーラ電源の初期化
+    CtlIoutMA(0, 100, False)
     current = FetchIout()
 
     if abs(current) < 0.009:
@@ -547,7 +562,7 @@ def cmdlist() -> None:
     print("""
 help        :コマンド一覧
 measure     :測定
-ctliout     :出力電流を設定
+ctlIout     :出力電流を設定
 status      :現時点の測定結果を表示
 savestatus  :現時点の測定結果をファイルに保存
 exit        :終了
@@ -555,11 +570,35 @@ exit        :終了
 
 
 def cmdCtlIout() -> None:
+    global FLAG_AUTOFINE
     print("mA unit in target")
     target = int(input(">>>>>"))
     print("mA unit step")
     step = int(input(">>>>>"))
-    CtlIoutMA(target, step)
+    CtlIoutMA(target, step, FLAG_AUTOFINE)
+
+
+FLAG_AUTOFINE = False
+
+
+def cmd_change_flags() -> None:
+    print("""1,FLAG_AUTOFINE""")
+    target = int(input(">>>>>"))
+    if target == 1:
+        global FLAG_AUTOFINE
+        print("FLAG_AUTOFINE is bool. T or F")
+        ans = input("FLAG_AUTOFINE = ")
+        if ans == "T":
+            FLAG_AUTOFINE = True
+            return
+        elif ans == "F":
+            FLAG_AUTOFINE = False
+            return
+        else:
+            print("True is T. False is F. ")
+            return
+    else:
+        print(str(target) + " is not defined.")
 
 
 def main() -> None:
@@ -642,12 +681,20 @@ def main() -> None:
                 continue
             else:
                 usQueryPower(odr)
+        elif cmd == "cangeflags":
+            cmd_change_flags()
         else:
             print("""invaild command\nPlease type "h" or "help" """)
 
 
 if __name__ == '__main__':
     init()
-    main()
-    after_operations()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+
+        print(traceback.format_exc())
+    finally:
+        after_operations()
     exit(0)
