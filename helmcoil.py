@@ -360,6 +360,34 @@ def auto_i_fine_binary(target: int, fine: int, ttl: int) -> int:
 FINECONST = list()  # diff/fine の値を蓄積していく
 
 
+def auto_ifine_offset(target) -> int:
+    """
+
+    :return:
+    """
+    TTL = 20
+    FINEBASECONST = -20
+    SetIFine(FINEBASECONST)
+    time.sleep(0.5)
+    current = A_to_mA(FetchIout())
+    diff_current = target - current
+    if diff_current == 0:
+        return FINEBASECONST
+    fine = FINEBASECONST
+    while True:
+        if TTL < 0 or diff_current == 0 or fine == 127 or fine == -128:
+            break
+        elif diff_current > 0:
+            fine -= 1
+        else:
+            fine += 1
+        SetIFine(fine)
+        time.sleep(0.3)
+        diff_current = A_to_mA(FetchIout()) - target
+        TTL -= 1
+    return fine
+
+
 def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     """
     安全に電流を設定値にあわせる
@@ -397,16 +425,18 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
 
     time.sleep(0.55)
     global FINECONST
-    if True:
+    Binary = False
+    if Binary:
         fine = (auto_i_fine_binary(target, 0, 7))
     else:
         # sfine = int(diff_iout * average(FINECONST))
 
-        fine = auto_IFine_step(0)
+        fine = auto_ifine_offset(target)
 
     if fine == 127 or fine == 0 or fine == -128:
         return
     FINECONST.append(diff_iout / fine)
+    return
 
 
 def gen_csv_header(filename, time_str) -> None:
