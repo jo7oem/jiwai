@@ -399,6 +399,9 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     :param step:    変化させる電流幅[mA]
     :param auto_fine: autoFINEを使用するか
     """
+    if step==0:
+        step=100
+
     if auto_fine:
         SetIFine(0)
         time.sleep(0.2)
