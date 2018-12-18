@@ -399,8 +399,8 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     :param step:    変化させる電流幅[mA]
     :param auto_fine: autoFINEを使用するか
     """
-    if step==0:
-        step=100
+    if step == 0:
+        step = 100
 
     if auto_fine:
         SetIFine(0)
@@ -443,6 +443,20 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     return
 
 
+Oe_CURRENT_CONST = 20.961
+
+
+def ctl_magnetic_field(target):
+    global Oe_CURRENT_CONST
+    if not target <= 110:
+        target = 100
+    gauss_ma_current_const = Oe_CURRENT_CONST / 1000
+    target_current = int(target / gauss_ma_current_const)
+    print("target current is ", target_current)
+    ctl_iout_ma(target_current, 200, False)
+    return
+
+
 def gen_csv_header(filename, time_str) -> None:
     print("測定条件等メモ記入欄")
     memo = input("memo :")
@@ -472,7 +486,7 @@ def measure() -> None:
         return
 
     """
-    0A=>+5A=>0A=>-5A=>0A
+    0A=>+5A=>0A=> -5A=>0A
     mA
     """
     check_point = [0, 5000, 0, -5000, 0]
@@ -614,11 +628,20 @@ def cmdCtlIout() -> None:
     ctl_iout_ma(target, step, FLAG_AUTOFINE)
 
 
+def cmd_ctl_gauss():
+    print("Target applied field(Oe)")
+    target = int(input(">>>>>"))
+    ctl_magnetic_field(target)
+
+
 FLAG_AUTOFINE = False
 
 
 def cmd_change_flags() -> None:
-    print("""1,FLAG_AUTOFINE""")
+    print("""
+    1,FLAG_AUTOFINE
+    2,Oe_CURRENT_CONST
+    """)
     target = int(input(">>>>>"))
     if target == 1:
         global FLAG_AUTOFINE
@@ -633,6 +656,18 @@ def cmd_change_flags() -> None:
         else:
             print("True is T. False is F. ")
             return
+    elif target == 2:
+        global Oe_CURRENT_CONST
+        print("Oe_CURRENT_CONST is float")
+        print("Oe_CURRENT_CONST = ", str(Oe_CURRENT_CONST))
+        try:
+            ans = float(input("FLAG_AUTOFINE = "))
+            Oe_CURRENT_CONST = ans
+            return
+        except ValueError:
+            print("invalid value. Please Enter float!")
+            return
+
     else:
         print(str(target) + " is not defined.")
 
@@ -651,6 +686,9 @@ def main() -> None:
 
         elif cmd == "ctlIout":
             cmdCtlIout()
+
+        elif cmd == "ctlGauss":
+            cmd_ctl_gauss()
 
         elif cmd == "status":
 
@@ -718,7 +756,7 @@ def main() -> None:
                 continue
             else:
                 usQueryPower(odr)
-        elif cmd == "cangeflags":
+        elif cmd == "changeflags":
             cmd_change_flags()
         else:
             print("""invaild command\nPlease type "h" or "help" """)
