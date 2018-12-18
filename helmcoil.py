@@ -245,7 +245,7 @@ def ReadField() -> str:
     return field_str.translate(str.maketrans('', '', ' \r\n'))
 
 
-def loadStatus() -> [float, float, float, float]:
+def loadStatus() -> [float, float, float, float, int]:
     """
     各ステータスをまとめて取得する
 
@@ -256,7 +256,8 @@ def loadStatus() -> [float, float, float, float]:
     iset = FetchIset()
     vout = FetchVout()
     field = FetchField()
-    return iset, iout, field, vout
+    ifine = FetchIFine()
+    return iset, iout, field, vout, ifine
 
 
 def addSaveStatus(filename: str, status: tuple) -> None:
@@ -493,17 +494,19 @@ def measure() -> None:
             recode_point = range(iset_current, i, abs(mesh) * -1)
 
         for j in recode_point:
-            ctl_iout_ma(j, step, True)  # 測定電流
+            ctl_iout_ma(j, step, False)  # 測定電流
             time.sleep(0.3)
-            iset, iout, h, vout = loadStatus()
-            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
-            addSaveStatus(savefile, (iset, iout, h, vout))
+            iset, iout, h, vout, ifine = loadStatus()
+            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
+                  "IFINE= " + str(ifine))
+            addSaveStatus(savefile, (iset, iout, h, vout, ifine))
 
-        ctl_iout_ma(i, step, True)  # 測定電流
+        ctl_iout_ma(i, step, False)  # 測定電流
         time.sleep(0.3)
-        iset, iout, h, vout = loadStatus()
-        print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
-        addSaveStatus(savefile, (iset, iout, h, vout))
+        iset, iout, h, vout, ifine = loadStatus()
+        print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
+              "IFINE= " + str(ifine))
+        addSaveStatus(savefile, (iset, iout, h, vout, ifine))
         continue
 
     end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
@@ -648,17 +651,18 @@ def main() -> None:
 
         elif cmd == "status":
 
-            iset, iout, h, vout = loadStatus()
-            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
+            iset, iout, h, vout, ifine = loadStatus()
+            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
+                  "IFINE= " + str(ifine))
 
         elif cmd == "savestatus":
             now = datetime.datetime.now()
             start_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
             savefile = start_time + ".csv"
             gen_csv_header(savefile, start_time)
-            iset, iout, h, vout = loadStatus()
+            iset, iout, h, vout, ifine = loadStatus()
             print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
-            addSaveStatus(savefile, (iset, iout, h, vout))
+            addSaveStatus(savefile, (iset, iout, h, vout, ifine))
 
         elif cmd == "unsafe":
             unsafe = True
