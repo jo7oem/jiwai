@@ -367,9 +367,9 @@ def auto_ifine_offset(target) -> int:
     :return:
     """
     TTL = 20
-    FINEBASECONST = -20
+    FINEBASECONST = -25
     SetIFine(FINEBASECONST)
-    time.sleep(0.5)
+    time.sleep(0.3)
     current = A_to_mA(FetchIout())
     diff_current = target - current
     if diff_current == 0:
@@ -383,7 +383,7 @@ def auto_ifine_offset(target) -> int:
         else:
             fine += 1
         SetIFine(fine)
-        time.sleep(0.3)
+        time.sleep(0.2)
         diff_current = A_to_mA(FetchIout()) - target
         TTL -= 1
     return fine
@@ -427,7 +427,6 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     if not auto_fine or abs(diff_iout) <= 1:
         return
 
-    time.sleep(0.55)
     global FINECONST
     Binary = False
     if Binary:
@@ -443,7 +442,7 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     return
 
 
-Oe_CURRENT_CONST = 20.961
+Oe_CURRENT_CONST = 20.960
 
 
 def ctl_magnetic_field(target):
@@ -630,7 +629,7 @@ def cmdCtlIout() -> None:
 
 def cmd_ctl_gauss():
     print("Target applied field(Oe)")
-    target = int(input(">>>>>"))
+    target = float(input(">>>>>"))
     ctl_magnetic_field(target)
 
 
