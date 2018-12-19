@@ -496,7 +496,7 @@ def gen_csv_header(filename) -> datetime:
         writer.writerow(["開始時刻", start_time.strftime('%Y-%m-%d_%H-%M-%S')])
         writer.writerow(["memo", memo])
         writer.writerow(["#####"])
-        writer.writerow(["設定電流:ISET[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
+        writer.writerow(["経過時間[sec]", "設定電流:ISET[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]", "IFINE"])
     return start_time
 
 
