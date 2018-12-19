@@ -24,6 +24,27 @@ class ControlError(Exception):
         self.message = message
 
 
+class StatusList:
+    iset = float
+    iout = float
+    field = float
+    vout = float
+    ifine = 0
+    loadtime = datetime.datetime
+    diff_second = 0
+
+    def __str__(self):
+        return '経過時間 {}sec ISET= {} IOUT= {} Field= {} VOUT= {} IFINE= {}'.format(self.loadtime, self.iset, self.iout,
+                                                                                  self.field, self.vout, self.ifine)
+
+    def set_origine_time(self, start_time: datetime.datetime):
+        self.loadtime = datetime.datetime.now()
+        self.diff_second = (start_time - self.loadtime).seconds
+
+    def out_list(self):
+        return (self.loadtime, self.iset, self.iout, self.field, self.vout, self.ifine)
+
+
 def get_time_str() -> str:
     """
     現時刻を日本語に整形した文字列を返す
@@ -245,33 +266,43 @@ def ReadField() -> str:
     return field_str.translate(str.maketrans('', '', ' \r\n'))
 
 
-def loadStatus() -> [float, float, float, float, int]:
+def loadStatus() -> StatusList:
     """
     各ステータスをまとめて取得する
 
     --------
-    :return: 5.000,5.003,102.3,2.432
+    :return: StatusList
     """
-    iout = FetchIout()
-    iset = FetchIset()
-    vout = FetchVout()
-    field = FetchField()
-    ifine = FetchIFine()
-    return iset, iout, field, vout, ifine
+    result = StatusList()
+    result.iout = FetchIout()
+    result.iset = FetchIset()
+    result.vout = FetchVout()
+    result.field = FetchField()
+    result.ifine = FetchIFine()
+    return result
 
 
-def addSaveStatus(filename: str, status: tuple) -> None:
+def addSaveStatus(filename: str, status: StatusList, start_time: datetime.datetime = None) -> None:
     """
     ファイルにステータスを追記する
 
     --------
+    :type status: dict{"iset":float,"iout":float,"ifield"}
     :param filename: 書き込むファイル名
     :param status: 書き込むデータ
+    :param start_time: datetime
     :return:
     """
+    if type(start_time) is datetime.datetime:
+        status.set_origine_time(start_time)
+        result = status.out_list()
+
+    else:
+        result = status.out_list()
+
     with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(status)
+        writer.writerow(result)
 
 
 def usWriteGauss(command: str) -> None:
@@ -456,18 +487,20 @@ def ctl_magnetic_field(target):
     return
 
 
-def gen_csv_header(filename, time_str) -> None:
+def gen_csv_header(filename) -> datetime:
     print("測定条件等メモ記入欄")
     memo = input("memo :")
+    start_time = datetime.datetime.now()
     with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
-        writer.writerow(["開始時刻", time_str])
+        writer.writerow(["開始時刻", start_time.strftime('%Y-%m-%d_%H-%M-%S')])
         writer.writerow(["memo", memo])
         writer.writerow(["#####"])
         writer.writerow(["設定電流:ISET[A]", "出力電流:IOUT[A]", "磁界:H[Gauss]", "出力電圧:VOUT[V]"])
+    return start_time
 
 
-def measure() -> None:
+def measure() -> None:  # TODO:関数呼び出し方法変更
     try:
         allow_power_output(True)
     except ControlError:
@@ -495,7 +528,7 @@ def measure() -> None:
 
     start_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
     savefile = start_time + ".csv"
-    gen_csv_header(savefile, start_time)
+    gen_csv_header(savefile)
 
     for i in check_point:
         if count == 0:
@@ -524,6 +557,56 @@ def measure() -> None:
               "IFINE= " + str(ifine))
         addSaveStatus(savefile, (iset, iout, h, vout, ifine))
         continue
+
+    end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    with open(savefile, mode='a', encoding="utf-8")as f:
+        writer = csv.writer(f, lineterminator='\n')
+        writer.writerow(["終了時刻", end_time])
+    print("Done")
+
+
+def Oe_measure():
+    try:
+        allow_power_output(True)
+    except ControlError:
+        print("[FATAL]バイポーラ電源制御エラー!!")
+        return
+
+    gauss.write("RANGE 2")
+    time.sleep(0.1)
+    gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
+    if gaussrange == '2\r\n':
+        print('ガウスメーターのレンジが +-300G に変更されました')
+
+    else:
+        print('ガウスメーターのレンジを確認してください')
+        return
+
+    """
+    0 Oe -> 100 Oe -> -100 Oe -> 100Oe ->0 Oe
+    """
+    check_point = [100, -100, 100]
+    mesh = 10
+    # step = 100
+    set_field = 0
+
+    ctl_magnetic_field(0)
+    file_make_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    savefile = file_make_time + "磁歪.csv"
+    start_time = gen_csv_header(savefile)
+
+    for next_check_field in check_point:
+        if next_check_field > set_field:
+            recode_point = range(set_field, next_check_field + 1, abs(mesh))
+        else:
+            recode_point = range(set_field, next_check_field - 1, abs(mesh) * -1)
+        for apply_field in recode_point:
+            ctl_magnetic_field(apply_field)
+            time.sleep(1)
+            status = loadStatus()
+            time.sleep(1)
+            print(status)
+            addSaveStatus(savefile, status, start_time)
 
     end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
     with open(savefile, mode='a', encoding="utf-8")as f:
@@ -681,7 +764,8 @@ def main() -> None:
             break
 
         elif cmd == "measure":
-            measure()
+            # measure()
+            Oe_measure()
 
         elif cmd == "ctlIout":
             cmdCtlIout()
@@ -691,18 +775,17 @@ def main() -> None:
 
         elif cmd == "status":
 
-            iset, iout, h, vout, ifine = loadStatus()
-            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
-                  "IFINE= " + str(ifine))
+            status = loadStatus()
+            print(status)
 
         elif cmd == "savestatus":
             now = datetime.datetime.now()
             start_time = "%s-%s-%s_%s-%s-%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
             savefile = start_time + ".csv"
-            gen_csv_header(savefile, start_time)
-            iset, iout, h, vout, ifine = loadStatus()
-            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout))
-            addSaveStatus(savefile, (iset, iout, h, vout, ifine))
+            gen_csv_header(savefile)
+            status = loadStatus()
+            print(status)
+            addSaveStatus(savefile, status)
 
         elif cmd == "unsafe":
             unsafe = True
