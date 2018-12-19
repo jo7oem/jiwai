@@ -25,24 +25,25 @@ class ControlError(Exception):
 
 
 class StatusList:
-    iset = float
-    iout = float
-    field = float
-    vout = float
+    iset = 0.0
+    iout = 0.0
+    field = 0.0
+    vout = 0.0
     ifine = 0
     loadtime = datetime.datetime
     diff_second = 0
 
     def __str__(self):
-        return '経過時間 {}sec ISET= {} IOUT= {} Field= {} VOUT= {} IFINE= {}'.format(self.loadtime, self.iset, self.iout,
-                                                                                  self.field, self.vout, self.ifine)
+        return "{:03} sec ISET= {:+.3f} IOUT= {:+.3f} Field= {:+.1f}\tVOUT= {:+.3f} IFINE= {:+04}".format(
+            self.diff_second, self.iset, self.iout,
+            self.field, self.vout, self.ifine)
 
     def set_origine_time(self, start_time: datetime.datetime):
         self.loadtime = datetime.datetime.now()
-        self.diff_second = (start_time - self.loadtime).seconds
+        self.diff_second = (self.loadtime - start_time).seconds
 
     def out_tuple(self) -> tuple:
-        return self.loadtime, self.iset, self.iout, self.field, self.vout, self.ifine
+        return self.diff_second, self.iset, self.iout, self.field, self.vout, self.ifine
 
 
 def get_time_str() -> str:
@@ -282,7 +283,7 @@ def loadStatus() -> StatusList:
     return result
 
 
-def addSaveStatus(filename: str, status: StatusList, start_time: datetime.datetime = None) -> None:
+def addSaveStatus(filename: str, status: StatusList) -> None:
     """
     ファイルにステータスを追記する
 
@@ -290,15 +291,9 @@ def addSaveStatus(filename: str, status: StatusList, start_time: datetime.dateti
     :type status: dict{"iset":float,"iout":float,"ifield"}
     :param filename: 書き込むファイル名
     :param status: 書き込むデータ
-    :param start_time: datetime
     :return:
     """
-    if type(start_time) is datetime.datetime:
-        status.set_origine_time(start_time)
-        result = status.out_tuple()
-
-    else:
-        result = status.out_tuple()
+    result = status.out_tuple()
 
     with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
@@ -482,7 +477,6 @@ def ctl_magnetic_field(target):
         target = 100
     gauss_ma_current_const = Oe_CURRENT_CONST / 1000
     target_current = int(target / gauss_ma_current_const)
-    print("target current is ", target_current)
     ctl_iout_ma(target_current, 200, False)
     return
 
@@ -604,14 +598,18 @@ def Oe_measure():
             ctl_magnetic_field(apply_field)
             time.sleep(1)
             status = loadStatus()
-            time.sleep(1)
+            status.set_origine_time(start_time)
             print(status)
-            addSaveStatus(savefile, status, start_time)
+            time.sleep(1)
+            addSaveStatus(savefile, status)
+        set_field = next_check_field
 
     end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
     with open(savefile, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["終了時刻", end_time])
+
+    ctl_iout_ma(0, 200, False)
     print("Done")
 
 
@@ -651,11 +649,11 @@ def init() -> None:
         sys.exit("power : connection failed")
 
     # ガウスメーターのレンジを最低感度に設定
-    gauss.write("RANGE 0")
+    gauss.write("RANGE 2")
     time.sleep(1.0)
     gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
-    if gaussrange == '0\r\n':
-        print('ガウスメーターのレンジが最大に変更されました')
+    if gaussrange == '2\r\n':
+        print('ガウスメーターのレンジが+-300に変更されました')
 
     else:
         print('ガウスメーターのレンジを確認してください')
