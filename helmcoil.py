@@ -41,8 +41,8 @@ class StatusList:
         self.loadtime = datetime.datetime.now()
         self.diff_second = (start_time - self.loadtime).seconds
 
-    def out_list(self):
-        return (self.loadtime, self.iset, self.iout, self.field, self.vout, self.ifine)
+    def out_tuple(self) -> tuple:
+        return self.loadtime, self.iset, self.iout, self.field, self.vout, self.ifine
 
 
 def get_time_str() -> str:
@@ -295,10 +295,10 @@ def addSaveStatus(filename: str, status: StatusList, start_time: datetime.dateti
     """
     if type(start_time) is datetime.datetime:
         status.set_origine_time(start_time)
-        result = status.out_list()
+        result = status.out_tuple()
 
     else:
-        result = status.out_list()
+        result = status.out_tuple()
 
     with open(filename, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
@@ -526,9 +526,9 @@ def measure() -> None:  # TODO:関数呼び出し方法変更
     step = 100
     count = 0
 
-    start_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
-    savefile = start_time + ".csv"
-    gen_csv_header(savefile)
+    file_make_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    savefile = file_make_time + ".csv"
+    start_time = gen_csv_header(savefile)
 
     for i in check_point:
         if count == 0:
