@@ -445,7 +445,7 @@ def gen_csv_header(filename) -> datetime:
     return start_time
 
 
-def measure() -> None:  # TODO:関数呼び出し方法変更
+def measure() -> None:
     try:
         allow_power_output(True)
     except ControlError:
@@ -490,20 +490,18 @@ def measure() -> None:  # TODO:関数呼び出し方法変更
         for j in recode_point:
             ctl_iout_ma(j, step, False)  # 測定電流
             time.sleep(0.3)
-            iset, iout, h, vout, ifine = loadStatus()
-            print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
-                  "IFINE= " + str(ifine))
-            addSaveStatus(savefile, (iset, iout, h, vout, ifine))
+            status = loadStatus()
+            status.set_origine_time(start_time)
+            addSaveStatus(savefile, status)
 
         ctl_iout_ma(i, step, False)  # 測定電流
         time.sleep(0.3)
-        iset, iout, h, vout, ifine = loadStatus()
-        print("ISET= " + str(iset), "IOUT= " + str(iout), "Field= " + str(h), "VOUT= " + str(vout),
-              "IFINE= " + str(ifine))
-        addSaveStatus(savefile, (iset, iout, h, vout, ifine))
+        status = loadStatus()
+        status.set_origine_time(start_time)
+        addSaveStatus(savefile, status)
         continue
 
-    end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    end_time = get_time_str()
     with open(savefile, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["終了時刻", end_time])
