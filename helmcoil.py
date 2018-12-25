@@ -561,7 +561,7 @@ def Oe_measure():
 
         set_field = next_check_field
 
-    end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
+    end_time = get_time_str()
     with open(savefile, mode='a', encoding="utf-8")as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(["終了時刻", end_time])
