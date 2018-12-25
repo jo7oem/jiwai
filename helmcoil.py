@@ -319,41 +319,6 @@ def CanOutput() -> bool:
     return False
 
 
-def auto_IFine_step(target, fine=0) -> int:
-    """
-    この実装はこわれている
-
-    Auto IFINEの単純な実装
-    与えられたFINE値から1ずつ変えて試す
-    調整幅が5以下ならばこちらのほうが早い
-
-    --------
-    :param target: 目標電流[mA]
-    :param fine: 初期FINE値
-    :return: 設定されたFINE値
-    """
-    SetIFine(fine)
-    time.sleep(0.05)
-    fineadd = None
-    while True:
-        current = A_to_mA(FetchIout())
-        diff = target - current
-        if abs(diff) == 0:
-            return fine
-        elif diff > 0 and (fine == 127 or not fineadd):
-            return fine
-        elif diff < 0 and (fine == -128 or fineadd):
-            return fine
-        elif diff > 0:
-            fine = fine + 1
-            fineadd = True
-        else:  # target<current
-            fine = fine - 1
-            fineadd = False
-        SetIFine(fine)
-        time.sleep(0.07)
-
-
 def auto_i_fine_binary(target: int, fine: int, ttl: int) -> int:
     """
     auto IFINEの2分探索実装
@@ -382,9 +347,6 @@ def auto_i_fine_binary(target: int, fine: int, ttl: int) -> int:
         return auto_i_fine_binary(target, fine + 2 ** ttl, ttl)
     else:
         return auto_i_fine_binary(target, fine - 2 ** ttl, ttl)
-
-
-FINECONST = list()  # diff/fine の値を蓄積していく
 
 
 def auto_ifine_offset(target) -> int:
@@ -453,18 +415,7 @@ def ctl_iout_ma(target: int, step: int = 100, auto_fine: bool = False) -> None:
     if not auto_fine or abs(diff_iout) <= 1:
         return
 
-    global FINECONST
-    Binary = False
-    if Binary:
-        fine = (auto_i_fine_binary(target, 0, 7))
-    else:
-        # sfine = int(diff_iout * average(FINECONST))
-
-        fine = auto_ifine_offset(target)
-
-    if fine == 127 or fine == 0 or fine == -128:
-        return
-    FINECONST.append(diff_iout / fine)
+    auto_ifine_offset(target)
     return
 
 
@@ -477,7 +428,7 @@ def ctl_magnetic_field(target):
         target = 100
     gauss_ma_current_const = Oe_CURRENT_CONST / 1000
     target_current = int(target / gauss_ma_current_const)
-    ctl_iout_ma(target_current, 200, False)
+    ctl_iout_ma(target_current, 150, False)
     return
 
 
@@ -520,8 +471,8 @@ def measure() -> None:  # TODO:関数呼び出し方法変更
     step = 100
     count = 0
 
-    file_make_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
-    savefile = file_make_time + ".csv"
+    file_make_time_str = get_time_str()
+    savefile = file_make_time_str + ".csv"
     start_time = gen_csv_header(savefile)
 
     for i in check_point:
@@ -581,7 +532,6 @@ def Oe_measure():
     """
     check_point = [100, -100, 100]
     mesh = 10
-    # step = 100
     set_field = 0
 
     ctl_magnetic_field(0)
@@ -591,9 +541,9 @@ def Oe_measure():
 
     for next_check_field in check_point:
         if next_check_field > set_field:
-            recode_point = range(set_field, next_check_field + 1, abs(mesh))
+            recode_point = range(set_field, next_check_field, abs(mesh))
         else:
-            recode_point = range(set_field, next_check_field - 1, abs(mesh) * -1)
+            recode_point = range(set_field, next_check_field, abs(mesh) * -1)
         for apply_field in recode_point:
             ctl_magnetic_field(apply_field)
             time.sleep(1)
@@ -602,6 +552,15 @@ def Oe_measure():
             print(status)
             time.sleep(1)
             addSaveStatus(savefile, status)
+
+        ctl_magnetic_field(next_check_field)
+        time.sleep(1)
+        status = loadStatus()
+        status.set_origine_time(start_time)
+        print(status)
+        time.sleep(1)
+        addSaveStatus(savefile, status)
+
         set_field = next_check_field
 
     end_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
