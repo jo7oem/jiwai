@@ -145,6 +145,24 @@ def SetIset(i: float):
     power.write("ISET {0:.3f}".format(i))
 
 
+def set_gauss_range(gauss_range: int = 0) -> None:
+    if gauss_range == 0:
+        gauss.write("RANGE 0")
+    abs_range = abs(gauss_range)
+    if abs_range >= 30:
+        gauss.write("RANGE 3")
+        return
+    elif abs_range >= 300:
+        gauss.write("RANGE 2")
+        return
+    elif abs_range >= 3000:
+        gauss.write("RANGE 1")
+        return
+    else:
+        gauss.write("RANGE 0")
+        return
+
+
 def FetchIFine() -> int:
     """
     現在の電流ファイン値を取得する
@@ -228,10 +246,6 @@ def mA_to_a(current: int) -> float:
     :return: 電流[A] 1.234
     """
     return float("{0:.3f}".format(current / 1000))
-
-
-def average(il: list) -> float:
-    return sum(il) / len(il)
 
 
 def A_to_mA(current: float) -> int:
@@ -451,16 +465,7 @@ def measure() -> None:
     except ControlError:
         print("[FATAL]バイポーラ電源制御エラー!!")
         return
-
-    gauss.write("RANGE 2")
-    time.sleep(0.1)
-    gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
-    if gaussrange == '2\r\n':
-        print('ガウスメーターのレンジが +-300G に変更されました')
-
-    else:
-        print('ガウスメーターのレンジを確認してください')
-        return
+    set_gauss_range(300)
 
     """
     0A=>+5A=>0A=> -5A=>0A
@@ -475,6 +480,14 @@ def measure() -> None:
     savefile = file_make_time_str + ".csv"
     start_time = gen_csv_header(savefile)
 
+    def log_prroces(target):
+        ctl_iout_ma(target, step, False)  # 測定電流
+        time.sleep(0.3)
+        status = loadStatus()
+        status.set_origine_time(start_time)
+        addSaveStatus(savefile, status)
+        return
+
     for i in check_point:
         if count == 0:
             ctl_iout_ma(i, step)
@@ -488,17 +501,9 @@ def measure() -> None:
             recode_point = range(iset_current, i, abs(mesh) * -1)
 
         for j in recode_point:
-            ctl_iout_ma(j, step, False)  # 測定電流
-            time.sleep(0.3)
-            status = loadStatus()
-            status.set_origine_time(start_time)
-            addSaveStatus(savefile, status)
+            log_prroces(j)
 
-        ctl_iout_ma(i, step, False)  # 測定電流
-        time.sleep(0.3)
-        status = loadStatus()
-        status.set_origine_time(start_time)
-        addSaveStatus(savefile, status)
+        log_prroces(i)
         continue
 
     end_time = get_time_str()
@@ -515,15 +520,7 @@ def Oe_measure():
         print("[FATAL]バイポーラ電源制御エラー!!")
         return
 
-    gauss.write("RANGE 2")
-    time.sleep(0.1)
-    gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
-    if gaussrange == '2\r\n':
-        print('ガウスメーターのレンジが +-300G に変更されました')
-
-    else:
-        print('ガウスメーターのレンジを確認してください')
-        return
+    set_gauss_range(300)
 
     """
     0 Oe -> 100 Oe -> -100 Oe -> 100Oe ->0 Oe
@@ -537,28 +534,24 @@ def Oe_measure():
     savefile = file_make_time_str + "磁歪.csv"
     start_time = gen_csv_header(savefile)
 
-    for next_check_field in check_point:
-        if next_check_field > set_field:
-            recode_point = range(set_field, next_check_field, abs(mesh))
-        else:
-            recode_point = range(set_field, next_check_field, abs(mesh) * -1)
-        for apply_field in recode_point:
-            ctl_magnetic_field(apply_field)
-            time.sleep(1)
-            status = loadStatus()
-            status.set_origine_time(start_time)
-            print(status)
-            time.sleep(1)
-            addSaveStatus(savefile, status)
-
-        ctl_magnetic_field(next_check_field)
+    def log_procces(target_gauss):
+        ctl_magnetic_field(target_gauss)
         time.sleep(1)
         status = loadStatus()
         status.set_origine_time(start_time)
         print(status)
         time.sleep(1)
         addSaveStatus(savefile, status)
+        return
 
+    for next_check_field in check_point:
+        if next_check_field > set_field:
+            recode_point = range(set_field, next_check_field, abs(mesh))
+        else:
+            recode_point = range(set_field, next_check_field, abs(mesh) * -1)
+        for apply_field in recode_point:
+            log_procces(apply_field)
+        log_procces(next_check_field)
         set_field = next_check_field
 
     end_time = get_time_str()
@@ -606,11 +599,11 @@ def init() -> None:
         sys.exit("power : connection failed")
 
     # ガウスメーターのレンジを最低感度に設定
-    gauss.write("RANGE 2")
+    set_gauss_range()
     time.sleep(1.0)
     gaussrange = gauss.query("RANGE?")  # 現在の設定レンジの問い合わせ
-    if gaussrange == '2\r\n':
-        print('ガウスメーターのレンジが+-300に変更されました')
+    if gaussrange == '0\r\n':
+        print('ガウスメーターのレンジが最大に変更されました')
 
     else:
         print('ガウスメーターのレンジを確認してください')
@@ -618,7 +611,7 @@ def init() -> None:
     ctl_iout_ma(0, 100, False)
     current = FetchIout()
 
-    if abs(current) < 0.009:
+    if abs(current) < 0.01:
         print("normal state\n")
 
     else:
