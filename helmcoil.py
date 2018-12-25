@@ -585,8 +585,8 @@ def Oe_measure():
     set_field = 0
 
     ctl_magnetic_field(0)
-    file_make_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')  # ex.'2018-09-08_21-00-29'
-    savefile = file_make_time + "磁歪.csv"
+    file_make_time_str = get_time_str()
+    savefile = file_make_time_str + "磁歪.csv"
     start_time = gen_csv_header(savefile)
 
     for next_check_field in check_point:
